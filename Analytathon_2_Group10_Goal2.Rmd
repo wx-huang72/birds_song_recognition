@@ -1,0 +1,211 @@
+---
+title: "goal 2"
+author: "Anuj Solanki"
+date: "2023-04-26"
+output: pdf_document
+---
+
+# Author: Weixiao Huang
+```{r}
+install.packages("cluster")
+install.packages("factoextra")
+install.packages("ggplot2")
+install.packages("scatterplot3d")
+install.packages("plotly")
+install.packages("dplyr")
+install.packages("dbscan")
+
+library(dbscan)
+library(cluster) 
+library(factoextra)
+library(ggplot2)
+library(scatterplot3d)
+library(plotly)
+library(dplyr)
+```
+
+# Author: Anuj Solanki
+```{r}
+grey_patridge <- read.csv("C:/Users/anuj/Downloads/greypartridge/greypartridge/greypartridge_features.csv")
+
+stock_dove <- read.csv("C:/Users/anuj/Downloads/stockdove/stockdove/stockdove_features.csv")
+
+turtle_dove <- read.csv("C:/Users/anuj/Downloads/turtledove/turtledove/turtledove_features.csv")
+  
+yellow_hammer <- read.csv("C:/Users/anuj/Downloads/yellowhammer/yellowhammer/yellowhammer_features.csv")
+
+```
+
+
+# Author: Sristi Jaiswal
+```{r}
+Combined_data <- rbind(grey_patridge, stock_dove, turtle_dove, yellow_hammer)
+Combined_data
+```
+
+
+# Author: Sristi Jaiswal
+```{r}
+# remove any unnecessary column
+Combined_data <- Combined_data[, 2:(ncol(Combined_data)-1)] 
+Scaled_dataframe <- scale(Combined_data) 
+Combined_data
+```
+
+
+# Author: sheila Sharifi
+```{r}
+fviz_nbclust(Scaled_dataframe, kmeans, method = "silhouette", k.max = 10, nboot = 50)
+```
+
+
+# Author: Weixiao Huang
+```{r}
+# perform k-means clustering with 25 random initializations
+k_mean <- kmeans(Scaled_dataframe, centers = 4, nstart = 25) 
+k_mean
+```
+
+# Author: Weixiao Huang
+```{r}
+principle_comp_analysis <- prcomp(Scaled_dataframe, scale = TRUE)
+reduce_data_1 <- as.data.frame(principle_comp_analysis$x[,1:2])
+```
+
+# Author: Weixiao Huang
+```{r}
+reduce_data_1$cluster <- as.factor(k_mean$cluster)
+```
+
+# Author: Anuj Solanki
+```{r}
+# Assign the cluster labels to a new variable
+cluster_n <- factor(k_mean$cluster, levels = c(1, 2, 3, 4), 
+                          labels = c("Greypatridge", "Stockdove", "Turtledove", "Yellowhammer"))
+
+# Add the cluster labels to the reduced data
+reduce_data_1$cluster_labels <- cluster_n
+
+# Plot the clusters with labels using ggplot2
+ggplot(reduce_data_1, aes(x = PC1, y = PC2, color = cluster_n)) +
+  geom_point() +
+  labs(title = "K-means Clustering (PCA-reduced)", x = "PC1", y = "PC2")
+
+```
+
+# Author: Anuj Solanki
+```{r}
+# Reduce the dimensions of the data using PCA
+reduce_data_2 <- as.data.frame(principle_comp_analysis$x[,1:3])
+
+# Add the cluster assignments to the reduced data
+reduce_data_2$cluster <- cluster_n
+
+# Plot the clusters in the reduced 3D space using ggplot2
+library(plotly)
+plot_1 <- plot_ly(data = reduce_data_2, x = ~PC1, y = ~PC2, z = ~PC3, color = cluster_n, type = "scatter3d", mode = "markers")
+plot_1
+```
+
+# Author: sheila Sharifi
+```{r}
+# Calculate z-scores for each column of data
+z_score <- apply(Scaled_dataframe, 2, function(x) (x - mean(x)) / sd(x))
+
+# Identify outliers with a z-score greater than 3
+outliers_df <- which(apply(abs(z_score), 1, max) > 3)
+outliers_df
+
+# Remove outliers from the data set
+No_outliers <- Scaled_dataframe[- outliers_df, ]
+
+```
+# Author: Sristi Jaiswal
+```{r}
+principal_component_a_2 <- prcomp(No_outliers, scale = TRUE)
+reduce_data_2 <- as.data.frame(principal_component_a_2$x[,1:2])
+```
+
+# Author: Anuj Solanki
+```{r}
+# perform k-means clustering with 25 random initializations
+k_means_1 <- kmeans(No_outliers, centers = 4, nstart = 25) 
+k_means_1
+```
+# Author: Anuj Solanki
+```{r}
+#Kmeans_all_no_outliers
+set.seed(1111)
+#df_mean_pca_km_filtered <- df_mean_pca_km[1:30]
+k_mean_all_col <- kmeans(No_outliers, centers = 4 , nstart = 25)
+k_mean_all_col$size
+```
+# Author: Anuj Solanki
+```{r}
+# Assign the cluster labels to a new variable
+cluster_labels_1 <- factor(k_means_1$cluster, levels = c(1, 2, 3, 4), 
+                          labels = c("Greypatridge", "Stockdove", "Turtledove", "Yellowhammer"))
+
+# Add the cluster labels to the reduced data
+reduce_data_2$cluster_labels <- cluster_labels_1
+
+# Plot the clusters with labels using ggplot2
+ggplot(reduce_data_2, aes(x = PC1, y = PC2, color = cluster_labels_1)) +
+  geom_point() +
+  labs(title = "K-means Clustering (PCA-reduced)", x = "PC1", y = "PC2")
+```
+
+# Author: Sristi Jaiswal
+```{r}
+#The K-Means clustering of all values.
+k_mean_all_col$size
+# Getting the data in cluster 1
+cluster_1_indices <- which(k_mean_all_col$cluster == 1)
+# Extracting birds from cluster 1
+a <- sum(cluster_1_indices < 1001)
+cat(paste("Number of greypartridge in 1st cluster:", a, "& weightage is ", round((a/length(cluster_1_indices))*100,2) ,"%\n"))
+a <- sum(cluster_1_indices > 1000 & cluster_1_indices < 2001)
+cat(paste("Number of stockdove in 1st cluster:", a, "& weightage is ", round((a/length(cluster_1_indices))*100,2) ,"%\n"))
+a <- sum(cluster_1_indices > 2000 & cluster_1_indices < 3001)
+cat(paste("Number of turtledove in 1st cluster:", a, "& weightage is ", round((a/length(cluster_1_indices))*100,2) ,"%\n"))
+a <- sum(cluster_1_indices > 3000)
+cat(paste("Number of yellowhammer in 1st cluster:", a, "& weightage is ", round((a/length(cluster_1_indices))*100,2) ,"%\n \n"))
+
+# Getting the data points in cluster 2
+cluster_2_indices <- which(k_mean_all_col$cluster == 2)
+# Extracting birds from cluster 2
+a <- sum(cluster_2_indices < 1001)
+cat(paste("Number of greypartridge in 2nd cluster:", a, "& weightage is ", round((a/length(cluster_2_indices))*100,2) ,"%\n"))
+a <- sum(cluster_2_indices > 1000 & cluster_2_indices < 2001)
+cat(paste("Number of stockdove in 2nd cluster:", a, "& weightage is ", round((a/length(cluster_2_indices))*100,2) ,"%\n"))
+a <- sum(cluster_2_indices > 2000 & cluster_2_indices < 3001)
+cat(paste("Number of turtledove in 2nd cluster:", a, "& weightage is ", round((a/length(cluster_2_indices))*100,2) ,"%\n"))
+a <- sum(cluster_2_indices > 3000)
+cat(paste("Number of yellowhammer in 2nd cluster:", a, "& weightage is ", round((a/length(cluster_2_indices))*100,2) ,"%\n \n"))
+
+# Getting the data points in cluster 3
+cluster_3_indices <- which(k_mean_all_col$cluster == 3)
+# Extracting birds from cluster 3
+a <- sum(cluster_3_indices < 1001)
+cat(paste("Number of greypartridge in 3rd cluster:", a, "& weightage is ", round((a/length(cluster_3_indices))*100,2) ,"%\n"))
+a <- sum(cluster_3_indices > 1000 & cluster_3_indices < 2001)
+cat(paste("Number of stockdove in 3rd cluster:", a, "& weightage is ", round((a/length(cluster_3_indices))*100,2) ,"%\n"))
+a <- sum(cluster_3_indices > 2000 & cluster_3_indices < 3001)
+cat(paste("Number of turtledove in 3rd cluster:", a, "& weightage is ", round((a/length(cluster_3_indices))*100,2) ,"%\n"))
+a <- sum(cluster_3_indices > 3000)
+cat(paste("Number of yellowhammer in 3rd cluster:", a, "& weightage is ", round((a/length(cluster_3_indices))*100,2) ,"%\n \n"))
+
+# Getring the data points in cluster 4
+cluster_4_indices <- which(k_mean_all_col$cluster == 4)
+# Extracting birds from cluster 4
+a <- sum(cluster_4_indices < 1001)
+cat(paste("Number of greypartridge in 4th cluster:", a, "& weightage is ", round((a/length(cluster_4_indices))*100,2) ,"%\n"))
+a <- sum(cluster_4_indices > 1000 & cluster_4_indices < 2001)
+cat(paste("Number of stockdove in 4th cluster:", a, "& weightage is ", round((a/length(cluster_4_indices))*100,2) ,"%\n"))
+a <- sum(cluster_4_indices > 2000 & cluster_4_indices < 3001)
+cat(paste("Number of turtledove in 4th cluster:", a, "& weightage is ", round((a/length(cluster_4_indices))*100,2) ,"%\n"))
+a <- sum(cluster_4_indices > 3000)
+cat(paste("Number of yellowhammer in 4th cluster:", a, "& weightage is ", round((a/length(cluster_4_indices))*100,2) ,"%\n \n"))
+```
+
+
